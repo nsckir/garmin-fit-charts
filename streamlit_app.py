@@ -7,6 +7,10 @@ import io
 st.set_page_config(layout="wide")
 
 
+def format_column_name(col):
+    return " ".join(word.capitalize() for word in col.split("_"))
+
+
 def process_fit_file(file):
     records = []
     units = {}
@@ -21,6 +25,11 @@ def process_fit_file(file):
                 records.append(record)
 
     df = pd.DataFrame(records)
+    # Format column names
+    df.columns = [format_column_name(col) for col in df.columns]
+
+    # Update units dictionary keys
+    units = {format_column_name(k): v for k, v in units.items()}
     return df, units
 
 
@@ -72,7 +81,6 @@ def create_plot(df, x_col, y_cols, shared_y_axis):
     return fig
 
 
-# Streamlit app
 st.title("FIT File Data Analysis")
 
 uploaded_file = st.file_uploader("Choose a FIT file", type="fit")
@@ -81,16 +89,16 @@ if uploaded_file is not None:
     # Process the uploaded file
     df, units = process_fit_file(io.BytesIO(uploaded_file.read()))
 
-    # Get all available columns not starting with "unknown"
-    available_columns = [col for col in df.columns if not col.startswith("unknown")]
+    # Get all available columns not starting with "Unknown"
+    available_columns = [col for col in df.columns if not col.startswith("Unknown")]
 
     # Select x-axis
     x_col = st.selectbox(
         "Select X-axis",
         available_columns,
         index=(
-            available_columns.index("timestamp")
-            if "timestamp" in available_columns
+            available_columns.index("Timestamp")
+            if "Timestamp" in available_columns
             else 0
         ),
     )
@@ -99,7 +107,7 @@ if uploaded_file is not None:
     y_cols = st.multiselect(
         "Select up to 2 Y-axes",
         available_columns,
-        default=["heart_rate"] if "heart_rate" in available_columns else [],
+        default=["Heart Rate"] if "Heart Rate" in available_columns else [],
     )
 
     if len(y_cols) > 2:
