@@ -1,8 +1,9 @@
-import streamlit as st
+import io
+
 import fitdecode
 import pandas as pd
 import plotly.graph_objects as go
-import io
+import streamlit as st
 
 st.set_page_config(layout="wide")
 
@@ -33,14 +34,18 @@ def process_fit_file(file):
     return df, units
 
 
-def create_plot(df, x_col, y_cols, shared_y_axis):
+def create_plot(df, x_col, y_cols, shared_y_axis, smooth_data, ma_window):
     fig = go.Figure()
 
     for i, y_col in enumerate(y_cols):
+        y_data = df[y_col]
+        if smooth_data:
+            y_data = y_data.rolling(window=ma_window, center=True).mean()
+
         fig.add_trace(
             go.Scatter(
                 x=df[x_col],
-                y=df[y_col],
+                y=y_data,
                 mode="lines",
                 name=y_col,
                 line=dict(width=1),
@@ -117,13 +122,23 @@ if uploaded_file is not None:
     # Toggle for shared y-axis
     shared_y_axis = st.checkbox("Use shared Y-axis", value=True)
 
+    # Add checkbox for data smoothing
+    smooth_data = st.checkbox("Smooth data", value=False)
+
+    # Add input field for moving average window size
+    ma_window = 1
+    if smooth_data:
+        ma_window = st.number_input(
+            "Moving average window size", min_value=1, max_value=100, value=5
+        )
+
     if y_cols:
         # Get units for the selected columns
         x_unit = units.get(x_col, "")
         y_units = [units.get(col, "") for col in y_cols]
 
         # Create and display the plot
-        fig = create_plot(df, x_col, y_cols, shared_y_axis)
+        fig = create_plot(df, x_col, y_cols, shared_y_axis, smooth_data, ma_window)
 
         # Update axis titles with units
         x_axis_title = f"{x_col} ({x_unit})" if x_unit else x_col
